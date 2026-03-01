@@ -37,3 +37,4 @@ void Rectangles::draw()const {
 
 	doc.drawAllPrimitives();
 	doc.clearPrimitives();
+}
