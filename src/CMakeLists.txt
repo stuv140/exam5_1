@@ -12,8 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(SOURCE_FILES
     Editor.cpp
     Document.cpp
-    Controller.cpp
-    GraphicPrimitive.cpp
+    Controller.cpp   
     Line.cpp
     Circle.cpp
     Rectangles.cpp
