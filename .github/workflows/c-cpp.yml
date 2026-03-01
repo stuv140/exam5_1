@@ -1,0 +1,73 @@
+name: 'C++ CI'
+
+on:
+  push:
+    branches:
+      - main
+      - feature/github_actions 
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # для работы с релизами и контентом
+      packages: write  # для выгрузки пакетов
+      pull-requests: write  # для работы с пулл реквестами
+      issues: write    # для комментирования задач
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install libboost-test-dev -y
+
+      - name: Configure CMake
+        run: cmake . -DPATCH_VERSION=${{ github.run_number }} -DWITH_BOOST_TEST=ON
+
+      - name: Build project
+        run: cmake --build .
+
+      - name: Run tests
+        run: cmake --build . --target test
+
+      - name: Display test results
+        run: |
+          ctest --output-on-failure
+          cat Tests/Temporary/LastTest.log || true
+
+      - name: Create package
+        run: |
+          cmake --build . --target package
+          mv Editor-0.1.0-Linux.deb Editor-${{ github.run_number }}-Linux.deb
+
+      - name: Verify package creation
+        run: ls -l Editor-*
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release ${{ github.run_number }}
+          draft: false
+          prerelease: false
+
+      - name: Upload test logs as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: Tests/Temporary/LastTest.log
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: Editor-${{ github.run_number }}-Linux.deb
+          asset_name: Editor-${{ github.run_number }}-Linux.deb
+          asset_content_type: application/vnd.debian.binary-package
